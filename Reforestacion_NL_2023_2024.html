@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mapa de reforestacion NL</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDzlOpD-PBWLksBL1QG09rG-hEZTcRZk0w"></script>
+    <script>
+        function initMap() {
+            // Initialize the map, centered on a default location, with satellite view and map type control enabled
+            const map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 7,
+                center: { lat: 25.6866, lng: -100.3161 }, // Centered around Monterrey, Mexico
+                mapTypeId: "hybrid", // Default to satellite view
+                mapTypeControl: true // Enable control to switch between map types
+            });
+
+            // Coordinates for trees planted in 2023
+            const locations2023 = [
+                { lat: 25.728031, lng: -100.132589 },
+        { lat: 25.700485, lng: -100.507870 },
+        { lat: 25.801765, lng: -100.334688 },
+        { lat: 25.137772, lng: -99.054399 },
+        { lat: 25.140922, lng: -99.050115 },
+        { lat: 25.140201, lng: -99.049607 },
+        { lat: 25.699247, lng: -100.206567 },
+        { lat: 25.139281, lng: -99.050478 },
+        { lat: 25.138496, lng: -99.049247 },
+        { lat: 25.788068, lng: -100.406769 },
+        { lat: 25.139858, lng: -99.050622 },
+        { lat: 25.859131, lng: -100.311377 },
+        { lat: 25.709813, lng: -99.251312 },
+        { lat: 25.263464, lng: -99.671712 },
+        { lat: 25.680292, lng: -100.451192 },
+        { lat: 25.315260, lng: -99.742349 },
+        { lat: 25.168243, lng: -99.318116 },
+        { lat: 25.320057, lng: -99.596276 },
+        { lat: 25.346557, lng: -99.628626 },
+        { lat: 25.355657, lng: -99.569590 },
+        { lat: 25.323221, lng: -99.609775 },
+        { lat: 25.327216, lng: -99.657871 },
+        { lat: 25.378101, lng: -99.495561 },
+        { lat: 25.355071, lng: -99.569715 },
+        { lat: 25.246787, lng: -99.690302 },
+        { lat: 25.224120, lng: -99.721328 },
+        { lat: 25.258660, lng: -99.687545 },
+        { lat: 25.252363, lng: -99.677222 },
+        { lat: 25.270626, lng: -99.675040 },
+        { lat: 25.217357, lng: -99.725849 },
+        { lat: 25.277013, lng: -99.644466 },
+        { lat: 25.254167, lng: -99.675161 },
+        { lat: 25.259036, lng: -99.670914 },
+        { lat: 25.329602, lng: -99.590492 },
+        { lat: 25.256560, lng: -99.691361 },
+        { lat: 25.300752, lng: -99.627501 },
+        { lat: 25.257841, lng: -99.691772 },
+        { lat: 25.415246, lng: -99.557609 },
+        { lat: 25.714972, lng: -99.222638 },
+        { lat: 25.275724, lng: -99.702379 },
+        { lat: 25.261308, lng: -99.676127 },
+        { lat: 25.314705, lng: -99.742234 },
+        { lat: 25.277064, lng: -99.735023 },
+        { lat: 25.704294, lng: -99.250973 },
+        { lat: 25.783009, lng: -100.400016 },
+        { lat: 25.139620, lng: -99.050890 },
+        { lat: 25.696320, lng: -99.226224 },
+        { lat: 25.783268, lng: -100.440079 },
+        { lat: 25.139230, lng: -99.053870 },
+        { lat: 25.856872, lng: -99.952732 },
+        { lat: 25.668303, lng: -100.292219 },
+        { lat: 25.323216, lng: -99.609752 },
+        { lat: 25.798255, lng: -100.597842 },
+        { lat: 25.300863, lng: -99.627289 },
+        { lat: 25.261091, lng: -99.679178 },
+        { lat: 25.339514, lng: -99.565632 },
+        { lat: 25.257092, lng: -99.685361 },
+        { lat: 25.668264, lng: -100.292252 },
+        { lat: 25.217148, lng: -99.725670 },
+        { lat: 25.673017, lng: -100.250599 }
+
+            ];
+
+            // Coordinates for trees planted in 2024
+            const locations2024 = [
+                { lat: 25.710315, lng: -100.297805 },
+      { lat: 25.772160, lng: -100.415021 },
+      { lat: 25.665659, lng: -100.403793 },
+      { lat: 25.688479, lng: -100.078528 },
+      { lat: 25.680032, lng: -100.081688 },
+      { lat: 25.635752, lng: -100.176451 },
+      { lat: 25.688205, lng: -100.110309 },
+      { lat: 25.678324, lng: -100.093850 },
+      { lat: 25.699380, lng: -100.108052 },
+      { lat: 25.784108, lng: -100.305408 },
+      { lat: 25.846591, lng: -100.380122 },
+      { lat: 25.692635, lng: -100.402850 },
+      { lat: 25.769361, lng: -100.287891 },
+      { lat: 25.705934, lng: -100.077341 },
+      { lat: 25.636187, lng: -100.143943 },
+      { lat: 25.660485, lng: -100.365919 },
+      { lat: 24.876704, lng: -99.570980 },
+      { lat: 26.533080, lng: -100.503734 },
+      { lat: 25.919269, lng: -100.199679 },
+      { lat: 25.713309, lng: -100.313513 },
+      { lat: 25.705026, lng: -100.192370 },
+      { lat: 25.805918, lng: -100.359034 },
+      { lat: 25.625818, lng: -100.106006 },
+      { lat: 25.814148, lng: -100.397871 },
+      { lat: 25.675621, lng: -100.291738 },
+      { lat: 25.824261, lng: -100.047594 },
+      { lat: 25.741589, lng: -100.217425 },
+      { lat: 25.704266, lng: -100.513270 },
+      { lat: 25.667113, lng: -100.307359 },
+      { lat: 25.713314, lng: -100.184671 },
+      { lat: 25.667429, lng: -100.308929 },
+      { lat: 25.699747, lng: -100.460408 },
+      { lat: 25.685598, lng: -100.445451 },
+      { lat: 25.683169, lng: -100.427676 },
+      { lat: 25.713868, lng: -100.381777 },
+      { lat: 25.662362, lng: -100.143432 },
+      { lat: 25.699725, lng: -100.211275 },
+      { lat: 25.703712, lng: -100.457240 },
+      { lat: 25.692093, lng: -100.491184 },
+      { lat: 25.699634, lng: -100.249670 },
+      { lat: 25.679624, lng: -100.465975 },
+      { lat: 25.806559, lng: -100.267894 },
+      { lat: 25.703078, lng: -100.178002 },
+      { lat: 25.672433, lng: -100.209825 },
+      { lat: 25.623983, lng: -100.283951 },
+      { lat: 25.720890, lng: -100.356245 },
+      { lat: 25.754777, lng: -100.131067 },
+      { lat: 25.681176, lng: -100.437936 },
+      { lat: 25.803842, lng: -100.340900 },
+      { lat: 25.680014, lng: -100.446196 },
+      { lat: 25.683756, lng: -100.441406 },
+      { lat: 25.655348, lng: -100.271040 },
+      { lat: 25.662674, lng: -100.451124 },
+      { lat: 25.661709, lng: -100.220855 },
+      { lat: 25.695933, lng: -100.460877 },
+      { lat: 25.683317, lng: -100.210940 },
+      { lat: 25.663643, lng: -100.202645 },
+      { lat: 25.698222, lng: -100.236162 },
+      { lat: 25.696756, lng: -100.307821 },
+      { lat: 25.694042, lng: -100.307985 },
+      { lat: 25.698616, lng: -100.308898 },
+      { lat: 25.690911, lng: -100.229790 },
+      { lat: 25.726549, lng: -100.192671 },
+      { lat: 25.626638, lng: -100.091923 },
+      { lat: 25.808398, lng: -100.219632 },
+      { lat: 25.788713, lng: -100.237359 },
+      { lat: 25.742708, lng: -100.196892 },
+      { lat: 25.625898, lng: -100.160838 },
+      { lat: 25.789262, lng: -100.252720 },
+      { lat: 25.711636, lng: -100.206057 },
+      { lat: 25.669135, lng: -100.189590 },
+      { lat: 25.713299, lng: -100.193753 },
+      { lat: 25.678215, lng: -100.271505 },
+      { lat: 25.690462, lng: -100.225900 },
+      { lat: 25.616169, lng: -100.130896 },
+      { lat: 25.699269, lng: -100.256815 },
+      { lat: 25.676651, lng: -100.321092 },
+      { lat: 25.662928, lng: -100.200627 },
+      { lat: 25.667335, lng: -100.257714 },
+      { lat: 25.665698, lng: -100.183854 },
+      { lat: 25.636303, lng: -100.156923 },
+      { lat: 25.670214, lng: -100.231648 },
+      { lat: 25.707530, lng: -100.226182 },
+      { lat: 25.687829, lng: -100.369604 },
+      { lat: 25.742407, lng: -100.403818 },
+      { lat: 25.684038, lng: -100.359872 },
+      { lat: 25.760619, lng: -100.139415 },
+      { lat: 25.682476, lng: -100.296669 },
+      { lat: 25.731630, lng: -100.136555 },
+      { lat: 25.623915, lng: -100.097457 },
+      { lat: 25.735911, lng: -100.163671 },
+      { lat: 25.660089, lng: -100.232705 },
+      { lat: 25.663207, lng: -100.229575 },
+      { lat: 25.761127, lng: -100.412296 },
+      { lat: 25.663658, lng: -100.189784 },
+      { lat: 25.654120, lng: -100.083492 },
+      { lat: 25.639903, lng: -100.165347 },
+      { lat: 25.660303, lng: -100.126553 },
+      { lat: 25.667772, lng: -100.100159 },
+      { lat: 25.668762, lng: -100.210088 },
+      { lat: 25.838844, lng: -100.416573 },
+      { lat: 25.727803, lng: -100.335387 },
+      { lat: 25.645621, lng: -100.087830 },
+      { lat: 25.668386, lng: -100.239732 },
+      { lat: 25.790204, lng: -100.291656 },
+      { lat: 25.721949, lng: -100.372237 },
+      { lat: 25.775105, lng: -100.453128 },
+      { lat: 25.735029, lng: -100.395802 },
+      { lat: 25.636683, lng: -100.164360 },
+      { lat: 25.635070, lng: -100.164569 },
+      { lat: 25.634852, lng: -100.163846 },
+      { lat: 25.636731, lng: -100.161931 },
+      { lat: 25.671762, lng: -100.451376 },
+      { lat: 25.726925, lng: -100.206285 },
+      { lat: 25.665426, lng: -100.134640 }
+        ];
+
+
+            // Create Data layers for 2023 and 2024
+            const layer2023 = new google.maps.Data({ map: map });
+            const layer2024 = new google.maps.Data({ map: map });
+
+            // Function to add coordinates to a data layer
+            function addLayerData(layer, locations, color) {
+                locations.forEach(location => {
+                    layer.add(new google.maps.Data.Feature({
+                        geometry: new google.maps.Data.Point(location)
+                    }));
+                });
+                layer.setStyle({
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 5,
+                        fillColor: color,
+                        fillOpacity: 0.6,
+                        strokeWeight: 0.6,
+                    }
+                });
+            }
+
+            // Add data to layers with specified colors
+            addLayerData(layer2023, locations2023, "blue");
+            addLayerData(layer2024, locations2024, "green");
+
+            // Layer toggle functionality
+            document.getElementById("toggle2023").addEventListener("change", (e) => {
+                layer2023.setMap(e.target.checked ? map : null);
+            });
+            document.getElementById("toggle2024").addEventListener("change", (e) => {
+                layer2024.setMap(e.target.checked ? map : null);
+            });
+        }
+    </script>
+</head>
+<body onload="initMap()">
+    <h3>Reforestacion en Nuevo Leon 2023-2024</h3>
+    <label><input type="checkbox" id="toggle2023" checked> 2023</label>
+    <label><input type="checkbox" id="toggle2024" checked> 2024</label>
+    <div id="map" style="width:100%; height:600px;"></div>
+</body>
+</html>
