@@ -1,0 +1,428 @@
+function GeneralesCharts() { 
+  var spreadsheet = SpreadsheetApp.getActive();
+  var sheet = spreadsheet.getActiveSheet();
+  
+  // Create a TextFinder to locate all occurrences of "Generales"
+  const textFinder = sheet.createTextFinder('Generales');
+  const foundRanges = textFinder.findAll();
+  
+  if (foundRanges.length === 0) {
+    Logger.log("No occurrences of 'Generales' found.");
+    return;
+  }
+  
+  // Loop through each occurrence of "Generales"
+  foundRanges.forEach(foundRange => {
+    var generalRow = foundRange.getRow();
+    var tableStartRow = generalRow + 2; // Table starts two rows below "Generales"
+    
+    // Determine the last row of the table dynamically
+    var dataC = sheet.getRange(tableStartRow, 3, sheet.getMaxRows() - tableStartRow + 1).getValues();
+    var dataE = sheet.getRange(tableStartRow, 5, sheet.getMaxRows() - tableStartRow + 1).getValues();
+    
+    var lastRow = tableStartRow;
+    for (var i = 0; i < dataC.length; i++) {
+      if (dataC[i][0] === "" && dataE[i][0] === "") {
+        break;
+      }
+      lastRow++;
+    }
+    
+    // Exclude the last row from the graph
+    lastRow = lastRow - 1;
+    
+    // Skip this occurrence if there's no valid data
+    if (lastRow < tableStartRow) {
+      Logger.log(`No valid data found below "Generales" at row ${generalRow}.`);
+      return;
+    }
+    
+    // Define the dynamic ranges for columns C and E
+    var rangeC = sheet.getRange(tableStartRow, 3, lastRow - tableStartRow, 1); // Column C
+    var rangeE = sheet.getRange(tableStartRow, 5, lastRow - tableStartRow, 1); // Column E
+    
+    // Create the chart
+    var chart = sheet.newChart()
+      .asPieChart()
+      .addRange(rangeC)
+      .addRange(rangeE)
+      .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS)
+      .setTransposeRowsAndColumns(false)
+      .setNumHeaders(1)
+      .setHiddenDimensionStrategy(Charts.ChartHiddenDimensionStrategy.IGNORE_BOTH)
+      .setOption('useFirstColumnAsDomain', true)
+      .setOption('isStacked', 'false')
+      .setOption('title', `Generales (Row ${tableStartRow})`) // Add row info for distinction
+      .setPosition(tableStartRow, 7, 0, 0) // Adjust position as needed
+      .setOption('width', 400)            // Adjust width (in pixels)
+      .setOption('height', 120)           // Adjust height to fit 6 rows
+      .build();
+      
+    // Insert the chart into the sheet
+    sheet.insertChart(chart);
+  });
+}
+
+
+function ByGeographicalUnitCharts() {
+  var spreadsheet = SpreadsheetApp.getActive();
+  var sheet = spreadsheet.getActiveSheet();
+  
+  // Find all occurrences of "Respuesta por unidad geográfica"
+  const textFinder = sheet.createTextFinder('Respuesta por unidad geográfica');
+  const foundRanges = textFinder.findAll();
+  
+  if (foundRanges.length === 0) {
+    Logger.log("No occurrences of 'Respuesta por unidad geográfica' found.");
+    return;
+  }
+  
+  // Loop through each occurrence of "Respuesta por unidad geográfica"
+  foundRanges.forEach(foundRange => {
+    var geoRow = foundRange.getRow();
+    var firstTableStartRow = geoRow + 2; // First table starts 2 rows below "Respuesta por unidad geográfica"
+    
+    // Helper function to determine the last row of a table dynamically
+    function getLastRow(startRow) {
+      var data = sheet.getRange(startRow, 3, sheet.getMaxRows() - startRow + 1, 16).getValues(); // Columns C to R
+      for (var i = 0; i < data.length; i++) {
+        if (data[i].every(cell => cell === "")) {
+          return startRow + i - 1; // Last non-empty row
+        }
+      }
+      return sheet.getMaxRows(); // If no empty row is found
+    }
+    
+    // Determine the end of the first table
+    var firstTableLastRow = getLastRow(firstTableStartRow);
+    
+    // Second table starts 2 rows below the first table
+    var secondTableStartRow = firstTableLastRow + 2;
+    var secondTableLastRow = getLastRow(secondTableStartRow);
+    
+    // Process each table
+    [
+      { startRow: firstTableStartRow, lastRow: firstTableLastRow, tableLabel: "First Table" },
+      { startRow: secondTableStartRow, lastRow: secondTableLastRow, tableLabel: "Second Table" }
+    ].forEach(({ startRow, lastRow, tableLabel }) => {
+      
+      // Skip if the table has no data
+      if (lastRow < startRow) {
+        Logger.log(`No valid data found for the ${tableLabel} starting at row ${startRow}.`);
+        return;
+      }
+      
+      // Define the range for columns C to R
+      var range = sheet.getRange(startRow, 3, lastRow - startRow, 16); // Columns C to R
+      
+      // Create the chart
+      var chart = sheet.newChart()
+        .asBarChart() // Use a bar chart for multi-column data
+        .addRange(range)
+        .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS)
+        .setTransposeRowsAndColumns(true)
+        .setNumHeaders(1)
+        .setHiddenDimensionStrategy(Charts.ChartHiddenDimensionStrategy.IGNORE_BOTH)
+        .setOption('isStacked', 'percent') // Set to 100% stacked bar chart
+        .setOption('title', `Respuesta por unidad geográfica (Row ${startRow})`) // Add row info for distinction
+        .setOption('width', 400)            // Set chart width
+        .setOption('height', 120)           // Set chart height
+        .setPosition(startRow, 20, 0, 0)    // Position the chart at column T
+        .build();
+      
+      // Insert the chart into the sheet
+      sheet.insertChart(chart);
+    });
+  });
+}
+
+
+function ByGeographicalUnitWOMENCharts() {
+  var spreadsheet = SpreadsheetApp.getActive();
+  var sheet = spreadsheet.getActiveSheet();
+  
+  // Find all occurrences of "Respuesta de MUJERES por unidad geográfica"
+  const textFinder = sheet.createTextFinder('Respuesta de MUJERES por unidad geográfica');
+  const foundRanges = textFinder.findAll();
+  
+  if (foundRanges.length === 0) {
+    Logger.log("No occurrences of 'Respuesta de MUJERES por unidad geográfica' found.");
+    return;
+  }
+  
+  // Loop through each occurrence of "Respuesta de MUJERES por unidad geográfica"
+  foundRanges.forEach(foundRange => {
+    var geoRow = foundRange.getRow();
+    var firstTableStartRow = geoRow + 2; // First table starts 2 rows below "Respuesta de MUJERES por unidad geográfica"
+    
+    // Helper function to determine the last row of a table dynamically
+    function getLastRow(startRow) {
+      var data = sheet.getRange(startRow, 3, sheet.getMaxRows() - startRow + 1, 16).getValues(); // Columns C to R
+      for (var i = 0; i < data.length; i++) {
+        if (data[i].every(cell => cell === "")) {
+          return startRow + i - 1; // Last non-empty row
+        }
+      }
+      return sheet.getMaxRows(); // If no empty row is found
+    }
+    
+    // Determine the end of the first table
+    var firstTableLastRow = getLastRow(firstTableStartRow);
+    
+    // Second table starts 2 rows below the first table
+    var secondTableStartRow = firstTableLastRow + 2;
+    var secondTableLastRow = getLastRow(secondTableStartRow);
+    
+    // Process each table
+    [
+      { startRow: firstTableStartRow, lastRow: firstTableLastRow, tableLabel: "First Table" },
+      { startRow: secondTableStartRow, lastRow: secondTableLastRow, tableLabel: "Second Table" }
+    ].forEach(({ startRow, lastRow, tableLabel }) => {
+      
+      // Skip if the table has no data
+      if (lastRow < startRow) {
+        Logger.log(`No valid data found for the ${tableLabel} starting at row ${startRow}.`);
+        return;
+      }
+      
+      // Define the range for columns C to R
+      var range = sheet.getRange(startRow, 3, lastRow - startRow, 16); // Columns C to R
+      
+      // Create the chart
+      var chart = sheet.newChart()
+        .asBarChart() // Use a bar chart for multi-column data
+        .addRange(range)
+        .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS)
+        .setTransposeRowsAndColumns(true)
+        .setNumHeaders(1)
+        .setHiddenDimensionStrategy(Charts.ChartHiddenDimensionStrategy.IGNORE_BOTH)
+        .setOption('isStacked', 'percent') // Set to 100% stacked bar chart
+        .setOption('title', `Respuesta de MUJERES por unidad geográfica (Row ${startRow})`) // Add row info for distinction
+        .setOption('width', 400)            // Set chart width
+        .setOption('height', 120)           // Set chart height
+        .setPosition(startRow, 20, 0, 0)    // Position the chart at column T
+        .build();
+      
+      // Insert the chart into the sheet
+      sheet.insertChart(chart);
+    });
+  });
+}
+
+
+function ByGeographicalUnitMENCharts() {
+  var spreadsheet = SpreadsheetApp.getActive();
+  var sheet = spreadsheet.getActiveSheet();
+  
+  // Find all occurrences of "Respuesta de HOMBRES por unidad geográfica"
+  const textFinder = sheet.createTextFinder('Respuesta de HOMBRES por unidad geográfica');
+  const foundRanges = textFinder.findAll();
+  
+  if (foundRanges.length === 0) {
+    Logger.log("No occurrences of 'Respuesta de HOMBRES por unidad geográfica' found.");
+    return;
+  }
+  
+  // Loop through each occurrence of "Respuesta de HOMBRES por unidad geográfica"
+  foundRanges.forEach(foundRange => {
+    var geoRow = foundRange.getRow();
+    var firstTableStartRow = geoRow + 2; // First table starts 2 rows below "Respuesta de HOMBRES por unidad geográfica"
+    
+    // Helper function to determine the last row of a table dynamically
+    function getLastRow(startRow) {
+      var data = sheet.getRange(startRow, 3, sheet.getMaxRows() - startRow + 1, 16).getValues(); // Columns C to R
+      for (var i = 0; i < data.length; i++) {
+        if (data[i].every(cell => cell === "")) {
+          return startRow + i - 1; // Last non-empty row
+        }
+      }
+      return sheet.getMaxRows(); // If no empty row is found
+    }
+    
+    // Determine the end of the first table
+    var firstTableLastRow = getLastRow(firstTableStartRow);
+    
+    // Second table starts 2 rows below the first table
+    var secondTableStartRow = firstTableLastRow + 2;
+    var secondTableLastRow = getLastRow(secondTableStartRow);
+    
+    // Process each table
+    [
+      { startRow: firstTableStartRow, lastRow: firstTableLastRow, tableLabel: "First Table" },
+      { startRow: secondTableStartRow, lastRow: secondTableLastRow, tableLabel: "Second Table" }
+    ].forEach(({ startRow, lastRow, tableLabel }) => {
+      
+      // Skip if the table has no data
+      if (lastRow < startRow) {
+        Logger.log(`No valid data found for the ${tableLabel} starting at row ${startRow}.`);
+        return;
+      }
+      
+      // Define the range for columns C to R
+      var range = sheet.getRange(startRow, 3, lastRow - startRow, 16); // Columns C to R
+      
+      // Create the chart
+      var chart = sheet.newChart()
+        .asBarChart() // Use a bar chart for multi-column data
+        .addRange(range)
+        .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS)
+        .setTransposeRowsAndColumns(true)
+        .setNumHeaders(1)
+        .setHiddenDimensionStrategy(Charts.ChartHiddenDimensionStrategy.IGNORE_BOTH)
+        .setOption('isStacked', 'percent') // Set to 100% stacked bar chart
+        .setOption('title', `Respuesta de HOMBRES por unidad geográfica (Row ${startRow})`) // Add row info for distinction
+        .setOption('width', 400)            // Set chart width
+        .setOption('height', 120)           // Set chart height
+        .setPosition(startRow, 20, 0, 0)    // Position the chart at column T
+        .build();
+      
+      // Insert the chart into the sheet
+      sheet.insertChart(chart);
+    });
+  });
+}
+
+
+function BySexCharts() {
+  var spreadsheet = SpreadsheetApp.getActive();
+  var sheet = spreadsheet.getActiveSheet();
+  
+  // Find all occurrences of "Respuesta por sexo"
+  const textFinder = sheet.createTextFinder('Respuesta por sexo');
+  const foundRanges = textFinder.findAll();
+  
+  if (foundRanges.length === 0) {
+    Logger.log("No occurrences of 'Respuesta por sexo' found.");
+    return;
+  }
+  
+  // Loop through each occurrence of "Respuesta por sexo"
+  foundRanges.forEach(foundRange => {
+    var geoRow = foundRange.getRow();
+    var firstTableStartRow = geoRow + 2; // First table starts 2 rows below "Respuesta por sexo"
+    
+    // Helper function to determine the last row of a table dynamically
+    function getLastRow(startRow) {
+      var data = sheet.getRange(startRow, 3, sheet.getMaxRows() - startRow + 1, 4).getValues(); // Columns C to F
+      for (var i = 0; i < data.length; i++) {
+        if (data[i].every(cell => cell === "")) {
+          return startRow + i - 1; // Last non-empty row
+        }
+      }
+      return sheet.getMaxRows(); // If no empty row is found
+    }
+    
+    // Determine the end of the first table
+    var firstTableLastRow = getLastRow(firstTableStartRow);
+    
+    // Second table starts 2 rows below the first table
+    var secondTableStartRow = firstTableLastRow + 2;
+    var secondTableLastRow = getLastRow(secondTableStartRow);
+    
+    // Process each table
+    [
+      { startRow: firstTableStartRow, lastRow: firstTableLastRow, tableLabel: "First Table" },
+      { startRow: secondTableStartRow, lastRow: secondTableLastRow, tableLabel: "Second Table" }
+    ].forEach(({ startRow, lastRow, tableLabel }) => {
+      
+      // Skip if the table has no data
+      if (lastRow < startRow) {
+        Logger.log(`No valid data found for the ${tableLabel} starting at row ${startRow}.`);
+        return;
+      }
+      
+      // Define the range for columns C to F
+      var range = sheet.getRange(startRow, 3, lastRow - startRow, 4); // Columns C to F
+      
+      // Create the chart
+      var chart = sheet.newChart()
+        .asColumnChart() // Column chart
+        .addRange(range)
+        .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS)
+        .setTransposeRowsAndColumns(false)
+        .setNumHeaders(1)
+        .setHiddenDimensionStrategy(Charts.ChartHiddenDimensionStrategy.IGNORE_BOTH)
+        .setOption('title', `Respuesta por sexo (Row ${startRow})`) // Add row info for distinction
+        .setOption('width', 400)            // Set chart width
+        .setOption('height', 120)           // Set chart height
+        .setPosition(startRow, 8, 0, 0)    // Position the chart at column H
+        .build();
+      
+      // Insert the chart into the sheet
+      sheet.insertChart(chart);
+    });
+  });
+}
+
+
+function ByAgeCharts() {
+  var spreadsheet = SpreadsheetApp.getActive();
+  var sheet = spreadsheet.getActiveSheet();
+  
+  // Find all occurrences of "Respuesta por edad"
+  const textFinder = sheet.createTextFinder('Respuesta por edad');
+  const foundRanges = textFinder.findAll();
+  
+  if (foundRanges.length === 0) {
+    Logger.log("No occurrences of 'Respuesta por edad found.");
+    return;
+  }
+  
+  // Loop through each occurrence of "Respuesta por edad"
+  foundRanges.forEach(foundRange => {
+    var geoRow = foundRange.getRow();
+    var firstTableStartRow = geoRow + 2; // First table starts 2 rows below "Respuesta por edad"
+    
+    // Helper function to determine the last row of a table dynamically
+    function getLastRow(startRow) {
+      var data = sheet.getRange(startRow, 3, sheet.getMaxRows() - startRow + 1, 14).getValues(); // Columns C to N
+      for (var i = 0; i < data.length; i++) {
+        if (data[i].every(cell => cell === "")) {
+          return startRow + i - 1; // Last non-empty row
+        }
+      }
+      return sheet.getMaxRows(); // If no empty row is found
+    }
+    
+    // Determine the end of the first table
+    var firstTableLastRow = getLastRow(firstTableStartRow);
+    
+    // Second table starts 2 rows below the first table
+    var secondTableStartRow = firstTableLastRow + 2;
+    var secondTableLastRow = getLastRow(secondTableStartRow);
+    
+    // Process each table
+    [
+      { startRow: firstTableStartRow, lastRow: firstTableLastRow, tableLabel: "First Table" },
+      { startRow: secondTableStartRow, lastRow: secondTableLastRow, tableLabel: "Second Table" }
+    ].forEach(({ startRow, lastRow, tableLabel }) => {
+      
+      // Skip if the table has no data
+      if (lastRow < startRow) {
+        Logger.log(`No valid data found for the ${tableLabel} starting at row ${startRow}.`);
+        return;
+      }
+      
+      // Define the range for columns C to R
+      var range = sheet.getRange(startRow, 3, lastRow - startRow, 14); // Columns C to N
+      
+      // Create the chart
+      var chart = sheet.newChart()
+        .asBarChart()
+        .addRange(range)
+        .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS)
+        .setTransposeRowsAndColumns(true)
+        .setNumHeaders(1)
+        .setHiddenDimensionStrategy(Charts.ChartHiddenDimensionStrategy.IGNORE_BOTH)
+        .setOption('isStacked', 'percent') // Set to 100% stacked bar chart
+        .setOption('title', `Respuesta por edad (Row ${startRow})`) // Add row info for distinction
+        .setOption('width', 400)            // Set chart width
+        .setOption('height', 120)           // Set chart height
+        .setPosition(startRow, 16, 0, 0)    // Position the chart at column P
+        .build();
+      
+      // Insert the chart into the sheet
+      sheet.insertChart(chart);
+    });
+  });
+}
