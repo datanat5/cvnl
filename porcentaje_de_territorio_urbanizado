@@ -1,0 +1,58 @@
+// Retrieving Global Human Settlement Layer (GHSL) data for 2020 and 2025
+var image_2020 = ee.Image('JRC/GHSL/P2023A/GHS_BUILT_S/2020');
+var built_2020 = image_2020.select('built_surface');
+var image_2025 = ee.Image('JRC/GHSL/P2023A/GHS_BUILT_S/2025');
+var built_2025 = image_2025.select('built_surface');
+var visParams = {min: 0.0, max: 8000.0, palette: ['000000', 'FFFFFF']};
+  
+var municipalities = [
+  'Apodaca', 'General Escobedo', 'García', 'Guadalupe', 'Juárez',
+  'Monterrey', 'San Nicolás de los Garza', 'San Pedro Garza García', 'Santa Catarina'];
+// INEGI boundary definition
+var calculation_area = ee.FeatureCollection("projects/ee-comovamosnl/assets/div-municipal_CF")
+  .filter(ee.Filter.inList('NOMGEO', municipalities));
+
+var only_built_up_surface = built_2025.select(0).gt(0); // Mask for built-up areas (pixel value > 0)
+var municipality_built_up_surface = only_built_up_surface.clip(calculation_area).selfMask(); // Clip to municipal boundaries
+var municipality_boundary = calculation_area.geometry();
+
+//Circle
+// Define center coordinates
+var center = ee.Geometry.Point([-100.3161, 25.6866]);
+// Create a 1 km (1000 meters) radius buffer
+var circle = center.buffer(1000);
+
+// Built-up surface area calculation Function
+var calculateBuiltSurface = function(image, year, geo) {
+  var pixelArea = ee.Image.pixelArea(); // Each pixel’s area in m²
+  var builtSurface = image.multiply(pixelArea); // Convert built-up fraction to actual area
+  var area = builtSurface.reduceRegion({
+    reducer: ee.Reducer.sum(), 
+    geometry: geo, 
+    scale: 100, // GHSL resolution
+    maxPixels: 1e9
+  });
+  // Get area in m² and convert to km²
+  var area_m2 = ee.Number(area.get('built_surface'));
+  var area_km2 = area_m2.divide(1e6); // Convert m² to km²
+  // Format result
+  var formatted_area_km2 = area_km2.format('%.2f');
+  print('Built-up surface area (km²):', formatted_area_km2);
+};
+
+// Call the function
+calculateBuiltSurface(municipality_built_up_surface, 2025,  municipality_boundary);
+calculateBuiltSurface(municipality_built_up_surface, 2025,  circle);
+print('Circle area (km²):', circle.area().divide(1e6));
+
+// Visualizing data
+//Map.addLayer(built_2020, visParams, 'Built-up surface [m²], 2020');
+//Map.addLayer(built_2025, visParams, 'Built-up surface [m²], 2025');
+//Map.addLayer(calculation_area, {color: 'red', fillColor: 'none'}, 'Municipal Boundaries');
+Map.addLayer(
+  municipality_built_up_surface, 
+  {min: 0, max: 1, palette: ['gray'], opacity: 0.7}, // Translucent gray
+  'Built-up Surface (Translucent)');
+Map.setCenter(-100.3161, 25.6866, 9);
+Map.centerObject(center, 10); // Zoom level 14 to focus on the circle
+Map.addLayer(circle, {color: 'red'}, '1 km Radius Circle');
