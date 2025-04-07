@@ -1,0 +1,274 @@
+// TERRIROTIO URBANIZADO
+// Retrieving Global Human Settlement Layer (GHSL) data for 2020
+var image_2020 = ee.Image("JRC/GHSL/P2023A/GHS_BUILT_S/2020");
+var built_2020 = image_2020.select('built_surface');
+
+// DIVISION MUNICIPAL
+// Municipalities list
+var municipalities = [
+  'Apodaca', 'General Escobedo', 'García', 'Guadalupe', 'Juárez',
+  'Monterrey', 'San Nicolás de los Garza', 'San Pedro Garza García', 'Santa Catarina'];
+// INEGI boundary definition
+var calculation_area = ee.FeatureCollection("projects/ee-comovamosnl/assets/div-municipal_CF")
+  .filter(ee.Filter.inList('NOMGEO', municipalities));
+
+// RASTER DE TEMPERATURA
+// Import temperature data (Ciudad finita, 2022)
+var temperature = ee.Image('projects/ee-comovamosnl/assets/suhi_raster_celsius');
+
+// Mask temperature to buit-up surface
+var builtUpMask = built_2020.gt(0);
+var maskedTemperature = temperature.updateMask(builtUpMask);
+
+// Function: Calculate Statistics
+var calculateMunicipalStats = function(feature) {
+  var municipalityName = feature.get('NOMGEO');
+  
+  var stats = maskedTemperature.reduceRegion({
+    reducer: ee.Reducer.mean()
+      .combine(ee.Reducer.min(), '', true)
+      .combine(ee.Reducer.max(), '', true)
+      .combine(ee.Reducer.stdDev(), '', true),
+    geometry: feature.geometry(),
+    scale: 30,
+    maxPixels: 1e9
+  });
+
+  //var builtUpStats = built_2020.reduceRegion({
+    //reducer: ee.Reducer.sum(),
+    //geometry: feature.geometry(),
+    //scale: 30,
+    //maxPixels: 1e9
+  //});
+
+  // Mean and Standard Deviation calculation
+  var meanTemp = stats.get('b1_mean');
+  var stdDev = stats.get('b1_stdDev');
+
+  // Exclude municipalities with null values
+  return ee.Algorithms.If(
+    ee.Algorithms.IsEqual(meanTemp, null),
+    null, // If meanTemp is null, return null
+    ee.Algorithms.If(
+      ee.Algorithms.IsEqual(stdDev, null),
+      null, // If stdDev is null, return null
+      ee.Feature(null, {
+        'municipality': municipalityName,
+        'mean_temp': meanTemp,
+        'min_temp': stats.get('b1_min'),
+        'max_temp': stats.get('b1_max'),
+        'std_dev': stdDev,
+        //'built_up_area_km2': ee.Number(builtUpStats.get('built_surface')).divide(1e6)
+      })
+    )
+  );
+}
+
+// Compute Statistics for ACV AMM Municipalities
+var municipalStats = calculation_area.map(calculateMunicipalStats)
+  .filter(ee.Filter.notNull(['mean_temp', 'std_dev']));
+
+// Export results
+Export.table.toDrive({
+  collection: municipalStats,
+  description: 'Estadisticas de Temperatura',
+  fileFormat: 'CSV'
+});
+
+// Function: Classify Temperatures
+var classifyTemperature = function(feature) {
+  var municipalityName = feature.get('municipality');
+  var mean = ee.Number(feature.get('mean_temp'));
+  var stdDev = ee.Number(feature.get('std_dev'));
+
+  var thresholds = {
+    veryHot: mean.add(stdDev.multiply(2)),
+    hot: mean.add(stdDev),
+    cold: mean.subtract(stdDev),
+    veryCold: mean.subtract(stdDev.multiply(2))
+  };
+
+  var municipalityMask = calculation_area
+    .filter(ee.Filter.eq('NOMGEO', municipalityName))
+    .geometry();
+  
+  // Classify temperature for built-up areas within municipality
+  var classified = maskedTemperature.clip(municipalityMask).expression(
+    'temp <= veryCold ? 0 : temp <= cold ? 1 : temp <= hot ? 2 : temp <= veryHot ? 3 : 4', {
+      'temp': maskedTemperature.select('b1'),
+      'veryCold': thresholds.veryCold,
+      'cold': thresholds.cold,
+      'hot': thresholds.hot,
+      'veryHot': thresholds.veryHot
+  });
+
+  // Mask to built-up surface within the municipality
+  return classified.updateMask(builtUpMask).clip(municipalityMask);
+};
+
+// Apply Classification function to ACV AMM Municipalities (only if valid)
+var municipalityList = municipalStats.toList(municipalStats.size());
+var classifiedTemps = ee.ImageCollection(
+  municipalityList.map(function(feature) {
+    return classifyTemperature(ee.Feature(feature));
+  })
+);
+//.mosaic();
+
+// Visualization parameters
+//var visParams = {"min":0,"max":8000,"palette":["000000","FFFFFF"]};
+var categoricalVisParams = {
+  min: 0, max: 4,
+  palette: ['blue', 'lightblue', 'yellow', 'orange', 'red'],
+  opacity: 0.7
+};
+
+// Add layers to map
+//Map.addLayer(built_2020, visParams, 'Built-up surface [m²], 2020');
+//Map.addLayer(maskedTemperature, {min: 20, max: 40, palette: ['blue', 'yellow', 'red']}, 'Temperature in Built-up Areas');
+Map.addLayer(calculation_area, {color: 'grey', fillColor: 'none', opacity: 0.7}, 'Municipal Boundaries');
+Map.addLayer(classifiedTemps, categoricalVisParams, 'Temperature Categories', true);
+Map.setCenter(-100.3161, 25.6866, 9);
+
+// Add a legend (optional)
+var legend = ui.Panel({
+  style: {
+    position: 'bottom-left',
+    padding: '8px 15px'
+  }
+});
+
+var legendTitle = ui.Label({
+  value: 'Clasificación de Temperatura',
+  style: {
+    fontWeight: 'bold',
+    fontSize: '16px',
+    margin: '0 0 4px 0',
+    padding: '0'
+  }
+});
+legend.add(legendTitle);
+
+var makeRow = function(color, name) {
+  var colorBox = ui.Label({
+    style: {
+      backgroundColor: color,
+      padding: '8px',
+      margin: '0 0 4px 0'
+    }
+  });
+  var description = ui.Label({
+    value: name,
+    style: {margin: '0 0 4px 6px'}
+  });
+  return ui.Panel({
+    widgets: [colorBox, description],
+    layout: ui.Panel.Layout.Flow('horizontal')
+  });
+};
+
+//legend.add(makeRow('blue', 'Muy frío'));
+//legend.add(makeRow('lightblue', 'Frío'));
+//legend.add(makeRow('yellow', 'Templado'));
+//legend.add(makeRow('orange', 'Caliente'));
+//legend.add(makeRow('red', 'Muy caliente'));
+
+Map.add(legend);
+
+// Print statistics
+print('Municipal Statistics:', municipalStats);
+
+// Export TIFF
+// Aplicar visualización sobre la imagen
+var visualizedImage = classifiedTemps.first().visualize(categoricalVisParams);
+
+// Exportar la imagen visualizada
+Export.image.toDrive({
+  image: visualizedImage,  // Exportar la imagen con visualización aplicada
+  description: 'Mapa_Temperatura',  // Nombre del archivo exportado
+  folder: 'GEE_Exports',
+  scale: 30,  // Resolución en metros
+  region: calculation_area.geometry().bounds(),  // Área de interés
+  crs: 'EPSG:4326',  // Proyección geográfica
+  fileFormat: 'GeoTIFF',  // Formato del archivo exportado
+  maxPixels: 1e8,  // Para imágenes grandes
+  formatOptions: { cloudOptimized: true }
+});
+
+// Areas por clasificacion de temperatura
+var areasMuyFrio = classifiedTemps.first().updateMask(classifiedTemps.first().eq(0));
+var areasFrio = classifiedTemps.first().updateMask(classifiedTemps.first().eq(1));
+var areasTemplado = classifiedTemps.first().updateMask(classifiedTemps.first().eq(2));
+var areasCaliente = classifiedTemps.first().updateMask(classifiedTemps.first().eq(3));
+var areasMuyCaliente = classifiedTemps.first().updateMask(classifiedTemps.first().eq(4));
+
+var muyFrioVectors = areasMuyFrio.reduceToVectors({
+  geometry: calculation_area.geometry(),
+  scale: 30,
+  geometryType: 'polygon',
+  eightConnected: false
+});
+var frioVectors = areasFrio.reduceToVectors({
+  geometry: calculation_area.geometry(),
+  scale: 30,
+  geometryType: 'polygon',
+  eightConnected: false
+});
+var templadoVectors = areasTemplado.reduceToVectors({
+  geometry: calculation_area.geometry(),
+  scale: 30,
+  geometryType: 'polygon',
+  eightConnected: false
+});
+var calienteVectors = areasCaliente.reduceToVectors({
+  geometry: calculation_area.geometry(),
+  scale: 30,
+  geometryType: 'polygon',
+  eightConnected: false
+});
+var muyCalienteVectors = areasMuyCaliente.reduceToVectors({
+  geometry: calculation_area.geometry(),
+  scale: 30,
+  geometryType: 'polygon',
+  eightConnected: false
+});
+
+// Exportar como KML: Capas de temperatura
+Export.table.toDrive({
+  collection: muyFrioVectors,
+  description: 'MuyFrio_X',
+  folder: 'GEE_Exports',
+  fileFormat: 'KML'
+});
+Export.table.toDrive({
+  collection: frioVectors,
+  description: 'Frio_X',
+  folder: 'GEE_Exports',
+  fileFormat: 'KML'
+});
+Export.table.toDrive({
+  collection: templadoVectors,
+  description: 'Templado_X',
+  folder: 'GEE_Exports',
+  fileFormat: 'KML'
+});
+Export.table.toDrive({
+  collection: calienteVectors,
+  description: 'Caliente_X',
+  folder: 'GEE_Exports',
+  fileFormat: 'KML'
+});
+Export.table.toDrive({
+  collection: muyCalienteVectors,
+  description: 'MuyCaliente_X',
+  folder: 'GEE_Exports',
+  fileFormat: 'KML'
+});
+
+// Exportar capa vectorial como KM: Limites administrativos
+Export.table.toDrive({
+  collection: calculation_area,
+  description: 'Limites_Administrativos_X',
+  folder: 'GEE_Exports',
+  fileFormat: 'KML'
+});
